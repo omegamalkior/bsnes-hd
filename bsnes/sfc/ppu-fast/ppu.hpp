@@ -306,6 +306,10 @@ public:
     bool hud = false;     //the status bar is on screen (lines above 32 are not masked or panned)
     int pan = 0;          //how far the picture is shifted to keep the room in view near its edges
     int panTarget = 0;
+    int panFrom = 0;      //door transitions: shift of the room being left
+    int panTo = 0;        //door transitions: shift of the room being entered
+    uint doorFrames = 0;  //door transitions: frames spent scrolling
+    bool box = false;     //a message box is open (the text layer stays in the original picture)
     int16_t maskL[240];   //per line: first visible x (relative to the original 256-wide picture)
     int16_t maskR[240];   //per line: one past the last visible x
     uint fadeIn = 0;      //door transition stage that fades the new room in (learned while running)

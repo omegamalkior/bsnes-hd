@@ -32,7 +32,7 @@ auto PPU::hdMosaic() const -> uint { return configuration.hacks.ppu.mode7.mosaic
 auto PPU::widescreen() const -> uint { return wsExt; }
 auto PPU::widescreenRaw() const -> uint { return !hd() || configuration.hacks.ppu.mode7.wsMode == 0 ? 0 : configuration.hacks.ppu.mode7.widescreen; }
 auto PPU::wsbg(uint bg) const -> uint {
-  if (smw.cart) return bg == Source::BG1 || bg == Source::BG2 ? 1 : bg == Source::BG3 ? 2032 : 0;
+  if (smw.cart) return bg == Source::BG1 || bg == Source::BG2 ? 1 : bg == Source::BG3 ? (smw.box ? 0 : 2032) : 0;
   if (bg == Source::BG1) return configuration.hacks.ppu.mode7.wsbg1;
   if (bg == Source::BG2) return configuration.hacks.ppu.mode7.wsbg2;
   if (bg == Source::BG3) return configuration.hacks.ppu.mode7.wsbg3;

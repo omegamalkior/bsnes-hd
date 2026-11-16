@@ -65,6 +65,8 @@ auto CPU::main() -> void {
 //itself is left untouched.
 auto CPU::smwHook() -> void {
   uint pc = r.pc.d & 0xffffff;
+  if(pc == 0x858080) { ppufast.smw.box = true;  return; }  //message box opens
+  if(pc == 0x8580be) { ppufast.smw.box = false; return; }  //message box closes
   if(pc != 0xa08f00 && pc != 0xa0ade8) return;
   auto r16 = [&](uint a) -> int { return (int16_t)(wram[a] | wram[a + 1] << 8); };
   uint e = (pc == 0xa08f00 ? r.x.w : r16(0x0e54)) & 0xffff;
