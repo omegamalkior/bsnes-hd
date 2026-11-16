@@ -47,6 +47,10 @@ static vector<string> cheatList;
 #define RETRO_MEMORY_GB_SRAM ((2 << 8) | RETRO_MEMORY_SAVE_RAM)
 #define RETRO_MEMORY_BSX_SRAM ((3 << 8) | RETRO_MEMORY_SAVE_RAM)
 
+// display aspect ratio reported for the ultrawide options, so the picture fills the screen
+// (0 = let the frontend derive it from the picture size)
+static double ws_display_aspect = 0.0;
+
 static bool update_variables() // returns whether video dimensions have changed (overscan, aspectcorrection scale or widescreen AR)
 {
 	char key[256];
@@ -421,6 +425,9 @@ static bool update_variables() // returns whether video dimensions have changed 
 		else if (strcmp(var.value,   "2:1") == 0) ws =  201;
 		else if (strcmp(var.value,  "21:9") == 0) ws = 2109;
 		else if (strcmp(var.value, "19.5:9") == 0) ws = 3918;
+		// "21:9" monitors (3440x1440, 5160x2160) are really 43:18
+		ws_display_aspect = strcmp(var.value, "21:9") == 0 ? 43.0 / 18.0
+		                  : strcmp(var.value, "19.5:9") == 0 ? 19.5 / 9.0 : 0.0;
 	}
 	if (scale == 0) ws = 0;
 	emulator->configure("Hacks/PPU/Mode7/Widescreen", ws);
@@ -903,6 +910,8 @@ void retro_get_system_av_info(struct retro_system_av_info *info)
 	}
 	info->geometry.aspect_ratio = !program->aspectcorrection ?  -1.0
 			: 8.0 / 7.0 * info->geometry.base_width / info->geometry.base_height;
+	if (!program->aspectcorrection && program->ws > 0 && ws_display_aspect > 0.0)
+		info->geometry.aspect_ratio = ws_display_aspect;
 	info->timing.sample_rate   = SAMPLERATE;
 	if (retro_get_region() == RETRO_REGION_NTSC) {
 		info->timing.fps = 21477272.0 / 357366.0;
