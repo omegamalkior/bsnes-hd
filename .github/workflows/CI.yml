@@ -36,6 +36,7 @@ jobs:
     - name: Build
       run: mingw32-make -j $env:NUMBER_OF_PROCESSORS -C bsnes target=libretro
     - name: Prepare artifacts
+      shell: bash
       run: |
         mkdir -p bsnes/out/pack
         cp README.md LICENSE bsnes/out/pack
