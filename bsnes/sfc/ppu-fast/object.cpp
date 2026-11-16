@@ -132,7 +132,8 @@ auto PPU::Line::renderObject(PPU::IO::Object& self) -> void {
     if(!priority[x]) continue;
     uint8 source = palette[x] < 192 ? Source::OBJ1 : Source::OBJ2;
     int xc = x;//
-    if(xc > 352) xc -= 512;
+    if(ppufast.smw.cart) xc = ((xc - ppufast.smw.pan + 128) & 511) - 128;
+    else if(xc > 352) xc -= 512;
     if(xc < wsl || xc >= wsr || (wsobj == 3 && (xc < 0 || xc >= 256))) continue;
 
     uint32 mctc = luma[cgram[palette[x]]];

@@ -335,6 +335,12 @@ auto PPU::Line::render(bool fieldID) -> void {
       } else if (twoRight >= r) {
         twoRight = rw;
       } 
+      if(int smwPan = ppufast.smw.pan * (int)scale) {
+        if(oneLeft  != lw && oneLeft  != rw) oneLeft  -= smwPan;
+        if(oneRight != lw && oneRight != rw) oneRight -= smwPan;
+        if(twoLeft  != lw && twoLeft  != rw) twoLeft  -= smwPan;
+        if(twoRight != lw && twoRight != rw) twoRight -= smwPan;
+      }
     }
 
     renderWindow(io.col.window, io.col.window.aboveMask, windowAbove,
@@ -352,8 +358,11 @@ auto PPU::Line::render(bool fieldID) -> void {
   if(hd) {
     int x = 0;
     for(uint ySub : range(scale)) {
+      int smwL = (ppufast.smw.maskL[this->y] + (int)ppufast.widescreen()) * (int)scale;
+      int smwR = (ppufast.smw.maskR[this->y] + (int)ppufast.widescreen()) * (int)scale;
+      if(ppufast.smw.hud && this->y < 32) smwL = -4096, smwR = 65536;
       for(uint i : range((256 + 2 * ppufast.widescreen() ) * scale)) {
-        *output++ = pixel(x, above[x], below[x], ppu.widescreen(), wsm, wsma, bgFixedColors[ySub]);
+        *output++ = ((int)i < smwL || (int)i >= smwR) ? 0 : pixel(x, above[x], below[x], ppu.widescreen(), wsm, wsma, bgFixedColors[ySub]);
         x++;
       }
     }

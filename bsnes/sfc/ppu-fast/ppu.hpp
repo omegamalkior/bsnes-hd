@@ -299,6 +299,20 @@ public:
   uint gamma = 222;
   uint wsExt = 0;
 
+  //smwide.cpp: built-in widescreen support for unmodified Super Metroid
+  struct SMWide {
+    bool cart = false;    //Super Metroid is loaded
+    bool level = false;   //the room is on screen and the side areas are valid
+    bool hud = false;     //the status bar is on screen (lines above 32 are not masked or panned)
+    int pan = 0;          //how far the picture is shifted to keep the room in view near its edges
+    int panTarget = 0;
+    int16_t maskL[240];   //per line: first visible x (relative to the original 256-wide picture)
+    int16_t maskR[240];   //per line: one past the last visible x
+    uint fadeIn = 0;      //door transition stage that fades the new room in (learned while running)
+  } smw;
+  auto smwPower() -> void;
+  auto smwFrame() -> void;
+
 
   uint ItemLimit = 0;
   uint TileLimit = 0;

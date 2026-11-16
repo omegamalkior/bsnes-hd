@@ -16,6 +16,7 @@ PPU ppu;
 #include "object.cpp"
 #include "window.cpp"
 #include "serialization.cpp"
+#include "smwide.cpp"
 
 auto PPU::interlace() const -> bool { return ppubase.display.interlace; }
 auto PPU::overscan() const -> bool { return ppubase.display.overscan; }
@@ -31,27 +32,30 @@ auto PPU::hdMosaic() const -> uint { return configuration.hacks.ppu.mode7.mosaic
 auto PPU::widescreen() const -> uint { return wsExt; }
 auto PPU::widescreenRaw() const -> uint { return !hd() || configuration.hacks.ppu.mode7.wsMode == 0 ? 0 : configuration.hacks.ppu.mode7.widescreen; }
 auto PPU::wsbg(uint bg) const -> uint {
+  if (smw.cart) return bg == Source::BG1 || bg == Source::BG2 ? 1 : bg == Source::BG3 ? 2032 : 0;
   if (bg == Source::BG1) return configuration.hacks.ppu.mode7.wsbg1;
   if (bg == Source::BG2) return configuration.hacks.ppu.mode7.wsbg2;
   if (bg == Source::BG3) return configuration.hacks.ppu.mode7.wsbg3;
   if (bg == Source::BG4) return configuration.hacks.ppu.mode7.wsbg4;
   return 0; }
-auto PPU::wsobj() const -> uint { return configuration.hacks.ppu.mode7.wsobj; }
+auto PPU::wsobj() const -> uint { if (smw.cart) return 1; return configuration.hacks.ppu.mode7.wsobj; }
 auto PPU::winXad(uint x, bool bel) const -> uint {
+  if (smw.cart) return x + widescreen();
   return ((configuration.hacks.ppu.mode7.igwin != 0 && (configuration.hacks.ppu.mode7.igwin >= 3
        || configuration.hacks.ppu.mode7.igwin >= 2 && ((bel ? io.col.window.belowMask : io.col.window.aboveMask) == 0)
        || configuration.hacks.ppu.mode7.igwin >= 1 && ((bel ? io.col.window.belowMask : io.col.window.aboveMask) == 2)))
     ? configuration.hacks.ppu.mode7.igwinx : x) + widescreen(); }
 auto PPU::winXadHd(uint x, bool bel) const -> uint {
+  if (smw.cart) return x;
   return (configuration.hacks.ppu.mode7.igwin != 0 && (configuration.hacks.ppu.mode7.igwin >= 3
        || configuration.hacks.ppu.mode7.igwin >= 2 && ((bel ? io.col.window.belowMask : io.col.window.aboveMask) == 0)
        || configuration.hacks.ppu.mode7.igwin >= 1 && ((bel ? io.col.window.belowMask : io.col.window.aboveMask) == 2)))
     ? configuration.hacks.ppu.mode7.igwinx * PPU::hdScale() : x; }
-auto PPU::strwin() const -> bool { return configuration.hacks.ppu.mode7.strwin; }
+auto PPU::strwin() const -> bool { if (smw.cart) return false; return configuration.hacks.ppu.mode7.strwin; }
 auto PPU::vramExt(uint addr) const -> uint { return addr & configuration.hacks.ppu.mode7.vramExt; }
 auto PPU::bgGrad() const -> uint { return !hd() ? 0 : configuration.hacks.ppu.mode7.bgGrad; }
 auto PPU::windRad() const -> uint { return !hd() ? 0 : configuration.hacks.ppu.mode7.windRad; }
-auto PPU::wsOverrideCandidate() const -> bool { return configuration.hacks.ppu.mode7.wsMode == 1; }
+auto PPU::wsOverrideCandidate() const -> bool { if (smw.cart) return false; return configuration.hacks.ppu.mode7.wsMode == 1; }
 auto PPU::wsOverride() const -> bool { return mode7LineGroups.count < 1 && wsOverrideCandidate(); }
 auto PPU::wsBgCol() const -> bool { return configuration.hacks.ppu.mode7.wsBgCol == 2
                                             || configuration.hacks.ppu.mode7.wsBgCol == 1 && wsOverride(); }
@@ -131,6 +135,7 @@ auto PPU::scanline() -> void {
     latch.ss = false;
     io.obj.timeOver = false;
     io.obj.rangeOver = false;
+    smwFrame();
   }
 
   if(vcounter() > 0 && vcounter() < vdisp()) {
@@ -214,6 +219,7 @@ auto PPU::power(bool reset) -> void {
   Line::count = 0;
 
   frame = {};
+  smwPower();
 }
 
 }

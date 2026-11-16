@@ -420,6 +420,7 @@ static bool update_variables() // returns whether video dimensions have changed 
 		else if (strcmp(var.value,  "16:9") == 0) ws = 1609;
 		else if (strcmp(var.value,   "2:1") == 0) ws =  201;
 		else if (strcmp(var.value,  "21:9") == 0) ws = 2109;
+		else if (strcmp(var.value, "19.5:9") == 0) ws = 3918;
 	}
 	if (scale == 0) ws = 0;
 	emulator->configure("Hacks/PPU/Mode7/Widescreen", ws);
@@ -1127,12 +1128,16 @@ unsigned retro_get_region()
 
 // Currently, there is no safe/sensible way to use the memory interface without severe hackery.
 // Rely on higan to load and save SRAM until there is really compelling reason not to.
+extern "C" uint8_t* bsnes_hd_wram();
+
 void *retro_get_memory_data(unsigned id)
 {
+	if (id == RETRO_MEMORY_SYSTEM_RAM) return bsnes_hd_wram();
 	return nullptr;
 }
 
 size_t retro_get_memory_size(unsigned id)
 {
+	if (id == RETRO_MEMORY_SYSTEM_RAM) return 128 * 1024;
 	return 0;
 }

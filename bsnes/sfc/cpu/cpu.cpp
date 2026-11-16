@@ -34,6 +34,7 @@ auto CPU::Enter() -> void {
 auto CPU::main() -> void {
   if(r.wai) return instructionWait();
   if(r.stp) return instructionStop();
+  if(ppufast.smw.level) smwHook();
   if(!status.interruptPending) return instruction();
 
   if(status.nmiPending) {
@@ -56,6 +57,27 @@ auto CPU::main() -> void {
   }
 
   status.interruptPending = 0;
+}
+
+//built-in Super Metroid widescreen: the game only activates and draws enemies
+//that touch the original 256 pixel wide picture. when the game reaches those two
+//decisions, answer them here for the wider picture instead. the game program
+//itself is left untouched.
+auto CPU::smwHook() -> void {
+  uint pc = r.pc.d & 0xffffff;
+  if(pc != 0xa08f00 && pc != 0xa0ade8) return;
+  auto r16 = [&](uint a) -> int { return (int16_t)(wram[a] | wram[a + 1] << 8); };
+  uint e = (pc == 0xa08f00 ? r.x.w : r16(0x0e54)) & 0xffff;
+  if(e >= 0x800) return;
+  int ext = ppufast.wsExt;
+  if(ext <= 0) return;
+  int x = r16(0x0f7a + e), y = r16(0x0f7e + e), rad = r16(0x0f82 + e);
+  int camX = r16(0x0911), camY = r16(0x0915);
+  int viewL = camX - ext + ppufast.smw.pan, viewR = camX + 0x100 + ext + ppufast.smw.pan;
+  bool visible = x + rad >= viewL && x - rad <= viewR && x + rad <= viewR + (128 - ext) + 8
+              && y + 8 >= camY && camY + 0xf8 >= y;
+  if(pc == 0xa08f00) r.pc.w = visible ? 0x8f34 : 0x8f54;
+  else               r.pc.w = visible ? 0xae1f : 0xae24;
 }
 
 auto CPU::load() -> bool {

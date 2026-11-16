@@ -51,6 +51,7 @@ auto PPU::Line::renderBackground(PPU::IO::Background& self, uint8 source) -> voi
   uint paletteShift = 2 << self.tileMode;
 
   uint hscroll = self.hoffset;
+  if(ppufast.smw.pan && !(ppufast.smw.hud && source == Source::BG3 && this->y < 32)) hscroll += ppufast.smw.pan;
   uint vscroll = self.voffset;
   uint hmask = (width << self.tileSize << !!(self.screenSize & 1)) - 1;
   uint vmask = (width << self.tileSize << !!(self.screenSize & 2)) - 1;

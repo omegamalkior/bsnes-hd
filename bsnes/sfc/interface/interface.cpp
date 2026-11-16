@@ -342,3 +342,5 @@ auto Interface::setRunAhead(bool runAhead) -> void {
 }
 
 }
+
+extern "C" uint8_t* bsnes_hd_wram() { return SuperFamicom::cpu.wram; }

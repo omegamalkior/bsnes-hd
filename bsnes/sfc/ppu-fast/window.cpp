@@ -17,14 +17,14 @@ auto PPU::Line::renderWindow(PPU::IO::WindowLayer& self, bool enable,
     } else if (oneLeft == 255) {
       oneLeft = width;
     } else  {
-      oneLeft += ws;
+      oneLeft += ws - ppufast.smw.pan;
     }
     if (oneRight == 0) {
       oneRight = -1;
     } else if (oneRight == 255) {
       oneRight = width;
     } else  {
-      oneRight += ws;
+      oneRight += ws - ppufast.smw.pan;
     } 
   }
 
@@ -47,14 +47,14 @@ auto PPU::Line::renderWindow(PPU::IO::WindowLayer& self, bool enable,
     } else if (twoLeft == 255) {
       twoLeft = width;
     } else  {
-      twoLeft += ws;
+      twoLeft += ws - ppufast.smw.pan;
     }
     if (twoRight == 0) {
       twoRight = -1;
     } else if (twoRight == 255) {
       twoRight = width;
     } else  {
-      twoRight += ws;
+      twoRight += ws - ppufast.smw.pan;
     } 
   }
 
