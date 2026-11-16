@@ -27,6 +27,8 @@ jobs:
 
   Windows-libretro:
     runs-on: windows-latest
+    permissions:
+      contents: write
     env:
       POWERSHELL_TELEMETRY_OPTOUT: 1
     steps:
@@ -41,6 +43,20 @@ jobs:
         mkdir -p bsnes/out/pack
         cp README.md LICENSE bsnes/out/pack
         cp -R bsnes/out/*bsnes* bsnes/out/pack
+    - name: Publish core to builds branch
+      if: github.ref == 'refs/heads/super-metroid-widescreen'
+      shell: bash
+      run: |
+        mkdir pub
+        cp bsnes/out/bsnes_hd_beta_libretro.dll pub/
+        strip --strip-unneeded pub/bsnes_hd_beta_libretro.dll
+        cd pub
+        git init -q -b builds
+        git config user.name "github-actions"
+        git config user.email "github-actions@users.noreply.github.com"
+        git add .
+        git commit -q -m "Windows libretro core built from ${GITHUB_SHA}"
+        git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" builds
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
