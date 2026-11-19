@@ -2,7 +2,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef _WIN32
+#include <windows.h>
+#define RTLD_NOW 0
+static void* dlopen(const char*p,int f){(void)f;return (void*)LoadLibraryA(p);}
+static void* dlsym(void*h,const char*n){return (void*)GetProcAddress((HMODULE)h,n);}
+static const char* dlerror(void){static char b[64];snprintf(b,sizeof b,"LoadLibrary failed, error %lu",(unsigned long)GetLastError());return b;}
+#else
 #include <dlfcn.h>
+#endif
 #include <stdbool.h>
 #include <stdint.h>
 #include <time.h>
@@ -37,6 +45,19 @@ static int script(int f){ int c=f%600; int p=0;
   if(c%40<12)p|=A; if(c%25<4)p|=X; return p; }
 static double now(){struct timespec t;clock_gettime(CLOCK_MONOTONIC,&t);return t.tv_sec+t.tv_nsec*1e-9;}
 int main(int c,char**v){
+  if(c==3&&!strcmp(v[2],"--smoke")){
+    // no game needed: check that the core loads, exports the libretro API and starts up
+    void*h=dlopen(v[1],RTLD_NOW);if(!h){puts(dlerror());return 1;}
+    const char*need[]={"retro_api_version","retro_init","retro_deinit","retro_run","retro_load_game","retro_unload_game","retro_get_system_info","retro_get_system_av_info","retro_serialize","retro_unserialize","retro_set_environment","retro_get_memory_data"};
+    for(unsigned i=0;i<sizeof need/sizeof*need;i++) if(!dlsym(h,need[i])){printf("missing export %s\n",need[i]);return 1;}
+    struct{const char*name,*version,*ext;bool fp,be;}si={0};
+    ((void(*)(void*))dlsym(h,"retro_get_system_info"))(&si);
+    unsigned api=((unsigned(*)(void))dlsym(h,"retro_api_version"))();
+    ((void(*)(void*))dlsym(h,"retro_set_environment"))(env);
+    ((void(*)(void))dlsym(h,"retro_init"))();
+    ((void(*)(void))dlsym(h,"retro_deinit"))();
+    printf("smoke test OK: %s %s, libretro API %u, extensions %s\n",si.name,si.version,api,si.ext);
+    return 0;}
   if(c<6){fprintf(stderr,"bench so rom state frames mode(time|hash|dump:file) [ar scale wsmode]\n");return 2;}
   int frames=atoi(v[4]); if(!strcmp(v[5],"hash"))dohash=1; if(!strncmp(v[5],"dump:",5))dump=fopen(v[5]+5,"wb");
   if(c>6)ar=v[6]; if(c>7)scale=v[7]; if(c>8)wsmode=v[8]; if(c>9&&!strcmp(v[9],"boot"))boot=1;

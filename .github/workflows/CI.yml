@@ -50,6 +50,9 @@ jobs:
         mkdir pub
         cp bsnes/out/bsnes_hd_beta_libretro.dll pub/
         strip --strip-unneeded pub/bsnes_hd_beta_libretro.dll
+        # build the headless test tool and check that the finished core loads and starts on Windows
+        gcc -O2 -static -o pub/smwide-bench.exe tools/smwide-bench/bench.c
+        ./pub/smwide-bench.exe pub/bsnes_hd_beta_libretro.dll --smoke
         cd pub
         git init -q -b builds
         git config user.name "github-actions"
