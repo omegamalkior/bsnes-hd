@@ -1,3 +1,14 @@
+//bitplaneSpread[b]: the 8 bits of b spread over 8 bytes, leftmost pixel (bit 7) in the lowest byte
+static uint64 bitplaneSpread[256];
+static const bool bitplaneSpreadReady = []() -> bool {
+  for(uint b = 0; b < 256; b++) {
+    uint64 v = 0;
+    for(uint k = 0; k < 8; k++) v |= (uint64)(b >> (7 - k) & 1) << (8 * k);
+    bitplaneSpread[b] = v;
+  }
+  return true;
+}();
+
 auto PPU::Line::renderBackground(PPU::IO::Background& self, uint8 source) -> void {
   if(!self.aboveEnable && !self.belowEnable) return;
   if(self.tileMode == TileMode::Mode7) return renderMode7(self, source);
@@ -74,7 +85,18 @@ auto PPU::Line::renderBackground(PPU::IO::Background& self, uint8 source) -> voi
   auto luma = ppu.lightTable[io.displayBrightness];
   bool lastCropped = false;
   int x = 0 - (hscroll & 7) - ws;
-  while(x < (width + ws)) {
+  int xlo = -ws, xhi = width + ws;
+  if(!hires && !autoCrop && !self.mosaicEnable) {
+    //skip the tiles that lie entirely in the masked part of the line
+    xlo = max(xlo, clipL), xhi = min(xhi, clipR);
+    if(x + 8 <= xlo) x += (xlo - x) / 8 * 8;
+  }
+  const bool simple = ppufast.smw.cart && rscale == 1 && !hires && !ppufast.hires() && !autoCrop && !self.mosaicEnable
+                   && !directColorMode && !ppufast.interlace() && ppufast.plainWindows();
+  const uint64 planeMask = self.tileMode >= TileMode::BPP8 ? ~0ull : self.tileMode >= TileMode::BPP4 ? 0xffffffffull : 0xffffull;
+  const uint wsAll = ppufast.widescreen();
+  const bool aboveOn = self.aboveEnable, belowOn = self.belowEnable;
+  while(x < xhi) {
     uint hoffset = x + hscroll;
     uint voffset = y + vscroll;
     if(offsetPerTileMode) {
@@ -124,8 +146,38 @@ auto PPU::Line::renderBackground(PPU::IO::Background& self, uint8 source) -> voi
     data |= (uint64)ppu.vram[address + 16] << 32;
     data |= (uint64)ppu.vram[address + 24] << 48;
 
+    if(simple) {
+      //the common case (no mosaic, hires, direct colour or cropping, rendered at the original
+      //resolution): decode the whole tile row at once and write its pixels directly
+      uint64 d = data & planeMask;
+      if(!d) { x += 8; continue; }  //fully transparent tile row
+      uint64 colors = bitplaneSpread[d & 255] | bitplaneSpread[d >> 8 & 255] << 1;
+      if(self.tileMode >= TileMode::BPP4) {
+        colors |= bitplaneSpread[d >> 16 & 255] << 2 | bitplaneSpread[d >> 24 & 255] << 3;
+        if(self.tileMode >= TileMode::BPP8) {
+          colors |= bitplaneSpread[d >> 32 & 255] << 4 | bitplaneSpread[d >> 40 & 255] << 5
+                 |  bitplaneSpread[d >> 48 & 255] << 6 | bitplaneSpread[d >> 56 & 255] << 7;
+        }
+      }
+      if(mirrorX) colors = __builtin_bswap64(colors);
+      const bool inside = x >= xlo && x + 8 <= xhi;
+      for(uint tileX = 0; tileX < 8; tileX++, x++, colors >>= 8) {
+        uint color = colors & 255;
+        if(!color) continue;
+        if(!inside && (x < xlo || x >= xhi)) continue;
+        uint px = x + wsAll;
+        bool plotA = aboveOn && !windowAbove[px] && tilePriority > above[px].priority;
+        bool plotB = belowOn && !windowBelow[px] && tilePriority > below[px].priority;
+        if(!plotA && !plotB) continue;
+        uint32 c = luma[cgram[paletteIndex + color]];
+        if(plotA) above[px] = {source, tilePriority, c};
+        if(plotB) below[px] = {source, tilePriority, c};
+      }
+      continue;
+    }
+
     for(uint tileX = 0; tileX < 8; tileX++, x++) {
-      if(x < -ws || x >= width + ws) continue;   //if(x & width) continue;  //x < 0 || x >= width
+      if(x < xlo || x >= xhi) continue;
       if(--mosaicCounter == 0) {
         uint color, shift = mirrorX ? tileX : 7 - tileX;
       /*if(self.tileMode >= TileMode::BPP2)*/ {

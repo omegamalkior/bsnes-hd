@@ -129,8 +129,8 @@ auto PPU::Line::avgBgC(uint dist, uint offset) const -> uint32 {
     int uY = (hdY-i)/scale;
     int dY = (hdY+i)/scale;
     if(uY < 0 || dY >= 224) break; /////////////////////////////
-    auto uL = ppufast.lines[uY];
-    auto dL = ppufast.lines[dY];
+    const auto& uL = ppufast.lines[uY];
+    const auto& dL = ppufast.lines[dY];
     if( io.col.halve     != dL.io.col.halve     || io.col.halve     != uL.io.col.halve     ||
         io.col.mathMode  != dL.io.col.mathMode  || io.col.mathMode  != uL.io.col.mathMode  ||
         io.col.blendMode != dL.io.col.blendMode || io.col.blendMode != uL.io.col.blendMode ||
@@ -172,7 +172,7 @@ auto PPU::Line::render(bool fieldID) -> void {
 
   auto hd = ppu.hd();
   auto ss = ppu.ss();
-  auto scale = ppufast.hd() ? ppufast.hdScale() : 1;
+  uint scale = ppufast.hd() ? ppufast.hdScale() : 1;
   auto output = ppu.output + (!hd
   ? (y * 1024 + (ppu.interlace() && field() ? 512 : 0))
   : (y * (256+2*ppu.widescreen()) * scale * scale)
@@ -190,11 +190,31 @@ auto PPU::Line::render(bool fieldID) -> void {
   
   auto luma = ppu.lightTable[io.displayBrightness];
   auto aboveColor = luma[cgram[0]];
-  uint32 *bgFixedColors = new uint32[10];
-  uint32 *belowColors = new uint32[10];
+  uint32 bgFixedColors[16];
+  uint32 belowColors[16];
   for (int i = 0; i < scale; i++) {
     bgFixedColors[i] = avgBgC(ppufast.bgGrad(), i);
     belowColors[i]  = hires ? aboveColor : bgFixedColors[i];
+  }
+
+  uint wsm = (ppu.widescreen() == 0 || ppu.wsOverride()) ? 0 : ppu.wsMarker();
+  uint wsma = ppu.wsMarkerAlpha();
+
+  //lines without Mode 7 look the same at every HD scale, only enlarged. render those once at the
+  //original resolution and enlarge the result, instead of rendering every enlarged pixel separately.
+  //(only verified frame-for-frame with Super Metroid, so only used for it)
+  const uint outScale = scale;
+  bool fast = ppufast.smw.cart && hd && scale > 1 && !ss && io.bgMode != 7 && !hires && !ppu.hires() && !ppu.interlace()
+           && ppufast.windRad() == 0 && wsm == 0
+           && ppufast.plainWindows();
+  for (int i = 1; fast && i < scale; i++) if(bgFixedColors[i] != bgFixedColors[0]) fast = false;
+  if(fast) scale = 1;
+  rscale = scale;
+
+  //parts of the line that end up masked do not need their backgrounds drawn
+  clipL = -65536, clipR = 65536;
+  if(ppufast.smw.cart && !(ppufast.smw.hud && this->y < 32)) {
+    clipL = ppufast.smw.maskL[this->y], clipR = ppufast.smw.maskR[this->y];
   }
 
   uint xa =  (hd || ss) && ppu.interlace() && field() ? (256+2*ppu.widescreen())  * scale * scale / 2 : 0;
@@ -204,7 +224,7 @@ auto PPU::Line::render(bool fieldID) -> void {
       int cx = (x % ((256+2*ppu.widescreen()) * scale)) - (ppu.widescreen() * scale);
       if (cx >= 0 && cx < (256 * scale)) {
         above[x] = {Source::COL, 0, aboveColor};
-        below[x] = {Source::COL, 0, belowColors[x / ((256+2*ppufast.widescreen()) * scale)]};
+        below[x] = {Source::COL, 0, belowColors[scale == 1 ? 0 : x / ((256+2*ppufast.widescreen()) * scale)]};
       } else {
         above[x] = {Source::COL, 0, 0};
         below[x] = {Source::COL, 0, 0};
@@ -213,7 +233,7 @@ auto PPU::Line::render(bool fieldID) -> void {
   } else {
     for(uint x = xa; x < xb; x++) {
       above[x] = {Source::COL, 0, aboveColor};
-      below[x] = {Source::COL, 0, belowColors[x / ((256+2*ppufast.widescreen()) * scale)]};
+      below[x] = {Source::COL, 0, belowColors[scale == 1 ? 0 : x / ((256+2*ppufast.widescreen()) * scale)]};
     }
   }
 
@@ -244,8 +264,8 @@ auto PPU::Line::render(bool fieldID) -> void {
       int uY = (hdY-i)/scale;
       int dY = (hdY+i)/scale;
       if(uY <= 0 || dY >= 224) break;
-      auto uL = ppufast.lines[uY];
-      auto dL = ppufast.lines[dY];
+      const auto& uL = ppufast.lines[uY];
+      const auto& dL = ppufast.lines[dY];
 
       if( io.col.halve     != dL.io.col.halve     || io.col.halve     != uL.io.col.halve     ||
           io.col.mathMode  != dL.io.col.mathMode  || io.col.mathMode  != uL.io.col.mathMode  ||
@@ -351,11 +371,22 @@ auto PPU::Line::render(bool fieldID) -> void {
                 (256 + 2 * ppu.widescreen())*scale*offset, ppu.widescreen());
   }
 
-  uint wsm = (ppu.widescreen() == 0 || ppu.wsOverride()) ? 0 : ppu.wsMarker();
-  uint wsma = ppu.wsMarkerAlpha();
-
   uint curr = 0, prev = 0;
-  if(hd) {
+  if(fast) {
+    const int lineWidth = 256 + 2 * ppufast.widescreen();
+    int smwL = ppufast.smw.maskL[this->y] + (int)ppufast.widescreen();
+    int smwR = ppufast.smw.maskR[this->y] + (int)ppufast.widescreen();
+    if(ppufast.smw.hud && this->y < 32) smwL = -4096, smwR = 65536;
+    uint32* row = output;
+    for(int i = 0; i < lineWidth; i++) {
+      uint32 color = (i < smwL || i >= smwR) ? 0 : pixel(i, above[i], below[i], ppu.widescreen(), 0, wsma, bgFixedColors[0]);
+      for(uint s = 0; s < outScale; s++) *output++ = color;
+    }
+    for(uint ySub = 1; ySub < outScale; ySub++) {
+      memcpy(output, row, lineWidth * outScale * sizeof(uint32));
+      output += lineWidth * outScale;
+    }
+  } else if(hd) {
     int x = 0;
     for(uint ySub : range(scale)) {
       int smwL = (ppufast.smw.maskL[this->y] + (int)ppufast.widescreen()) * (int)scale;
@@ -384,8 +415,6 @@ auto PPU::Line::render(bool fieldID) -> void {
     prev = curr;
   }
 
-  delete [] bgFixedColors;
-  delete [] belowColors;
 
 }
 
@@ -451,7 +480,7 @@ auto PPU::Line::plotBelow(int x, uint8 source, uint8 priority, uint32 color) -> 
 
 //todo: name these variables more clearly ...
 auto PPU::Line::plotHD(Pixel* pixel, int x, uint8 source, uint8 priority, uint32 color, bool hires, bool subpixel) -> void {
-  int scale = ppu.hdScale();
+  int scale = rscale;
   int wss = ppu.widescreen() * scale;
   int xss = hires && subpixel ? (scale / 2 + ((scale & 1 == 1) && (x & 1 == 1))) : 0;
   int ys = ppu.interlace() && ppu.field() ? scale / 2 : 0;

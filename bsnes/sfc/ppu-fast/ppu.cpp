@@ -55,6 +55,7 @@ auto PPU::strwin() const -> bool { if (smw.cart) return false; return configurat
 auto PPU::vramExt(uint addr) const -> uint { return addr & configuration.hacks.ppu.mode7.vramExt; }
 auto PPU::bgGrad() const -> uint { return !hd() ? 0 : configuration.hacks.ppu.mode7.bgGrad; }
 auto PPU::windRad() const -> uint { return !hd() ? 0 : configuration.hacks.ppu.mode7.windRad; }
+auto PPU::plainWindows() const -> bool { return smw.cart || configuration.hacks.ppu.mode7.igwin == 0; }
 auto PPU::wsOverrideCandidate() const -> bool { if (smw.cart) return false; return configuration.hacks.ppu.mode7.wsMode == 1; }
 auto PPU::wsOverride() const -> bool { return mode7LineGroups.count < 1 && wsOverrideCandidate(); }
 auto PPU::wsBgCol() const -> bool { return configuration.hacks.ppu.mode7.wsBgCol == 2

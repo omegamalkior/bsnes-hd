@@ -27,6 +27,7 @@ struct PPU : PPUcounter {
   alwaysinline auto vramExt(uint addr) const -> uint;
   alwaysinline auto bgGrad() const -> uint;
   alwaysinline auto windRad() const -> uint;
+  alwaysinline auto plainWindows() const -> bool;
   alwaysinline auto wsOverrideCandidate() const -> bool;
   alwaysinline auto wsOverride() const -> bool;
   alwaysinline auto wsBgCol() const -> bool;
@@ -363,6 +364,9 @@ public:
   //unserialized:
     uint y;  //constant
     bool fieldID;
+    uint rscale = 1;         //scale this line is rendered at (1 when it can simply be enlarged afterwards)
+    int clipL = -65536;      //backgrounds are only drawn for x in [clipL, clipR): the rest is masked anyway
+    int clipR = 65536;
 
     IO io;
     uint16 cgram[256];
