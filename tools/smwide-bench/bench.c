@@ -19,6 +19,7 @@ struct retro_game_info{const char*path;const void*data;size_t size;const char*me
 static const char *ar="21:9",*scale="2x",*wsmode="Mode 7";
 static unsigned W,H; static uint64_t hash=1469598103934665603ULL; static int dohash=0; static int pad=0;
 static FILE* dump=0;
+static int docheck=0; static unsigned long long unrec=0, rec=0, unrecFrames=0;
 static bool env(unsigned cmd,void*d){
   cmd&=0xffff;
   if(cmd==15){struct retro_variable*v=d;
@@ -59,7 +60,7 @@ int main(int c,char**v){
     printf("smoke test OK: %s %s, libretro API %u, extensions %s\n",si.name,si.version,api,si.ext);
     return 0;}
   if(c<6){fprintf(stderr,"bench so rom state frames mode(time|hash|dump:file) [ar scale wsmode]\n");return 2;}
-  int frames=atoi(v[4]); if(!strcmp(v[5],"hash"))dohash=1; if(!strncmp(v[5],"dump:",5))dump=fopen(v[5]+5,"wb");
+  int frames=atoi(v[4]); if(!strcmp(v[5],"hash"))dohash=1; if(!strncmp(v[5],"dump:",5))dump=fopen(v[5]+5,"wb"); if(!strcmp(v[5],"check"))docheck=dohash=1;
   if(c>6)ar=v[6]; if(c>7)scale=v[7]; if(c>8)wsmode=v[8]; if(c>9&&!strcmp(v[9],"boot"))boot=1;
   void*h=dlopen(v[1],RTLD_NOW);if(!h){puts(dlerror());return 1;}
   #define S(n) dlsym(h,n)
@@ -80,8 +81,11 @@ int main(int c,char**v){
   for(int i=0;i<60;i++){pad=0;run();}           // warm-up
   dohash=save_hash; dump=sd;
   double t0=now();
-  for(int i=0;i<frames;i++){pad=script(i);run();}
+  void*(*memdata)(unsigned)=S("retro_get_memory_data");
+  for(int i=0;i<frames;i++){pad=script(i);run();
+    if(docheck){unsigned*st=memdata(0x534d57); if(st){unrec+=st[0];rec+=st[1];unrecFrames+=st[0]!=0;}}}
   double t=now()-t0;
   printf("%ux%u frames=%d ms/frame=%.4f fps=%.1f hash=%016llx\n",W,H,frames,t*1000/frames,frames/t,(unsigned long long)hash);
+  if(docheck)printf("selfcheck: side-area sprite tiles without a recorded position=%llu (in %llu frames), with=%llu\n",unrec,unrecFrames,rec);
   if(dump)fclose(dump);
   return 0;}

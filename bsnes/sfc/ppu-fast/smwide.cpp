@@ -6,15 +6,41 @@
 auto PPU::smwPower() -> void {
   smw = {};
   for(uint y : range(240)) smw.maskL[y] = -4096, smw.maskR[y] = 4096;
+  for(uint n : range(128)) smw.sprBuild[n] = smw.sprPending[n] = smw.sprTrue[n] = 0x7fff;
   auto hashes = cartridge.hashes();
   smw.cart = hashes.size() && hashes[0] == "12b77c4bc9c1832cee8881244659065ee1d84c70c3d29e6eaf92e6798cc2ca72";
 }
 
 static bool smwWasLevel = false;
 
+//the game has finished this frame's sprite list. (records are not cleared here: the game sometimes
+//finishes the same list twice, and a record only ever applies to a sprite whose position it matches)
+auto PPU::smwSpriteFinalize() -> void {
+  memcpy(smw.sprPending, smw.sprBuild, sizeof(smw.sprPending));
+}
+
+//the game starts copying its sprite list to the PPU
+auto PPU::smwSpriteLatch() -> void {
+  memcpy(smw.sprTrue, smw.sprPending, sizeof(smw.sprTrue));
+}
+
+//horizontal position of a sprite relative to the original picture, already shifted by the pan
+auto PPU::smwSpriteX(uint index, uint x9, bool& recorded) const -> int {
+  int t = smw.sprTrue[index];
+  if(t != 0x7fff && ((t ^ x9) & 255) == 0) {
+    recorded = true;
+    return t - smw.pan;
+  }
+  recorded = false;
+  return ((int(x9) - smw.pan + 128) & 511) - 128;
+}
+
 auto PPU::smwFrame() -> void {
   if(!smw.cart) return;
   int ext = wsExt;
+  smw.hooks = ext > 0;
+  smw.statSideLast = smw.statSide, smw.statSide = 0;
+  smw.statTrueLast = smw.statTrue, smw.statTrue = 0;
   smw.level = false;
   smw.hud = false;
   if(ext <= 0) {
@@ -150,4 +176,15 @@ auto PPU::smwFrame() -> void {
     for(uint y : range(240)) smw.maskL[y] = 0, smw.maskR[y] = 256;
   }
   smwWasLevel = level;
+}
+
+//self-check counters for the test tools: {side-area sprite tiles without a recorded position,
+//with a recorded position, current pan, level flag}
+extern "C" unsigned* bsnes_hd_smw_stats() {
+  static unsigned stats[4];
+  stats[0] = ppufast.smw.statSideLast;
+  stats[1] = ppufast.smw.statTrueLast;
+  stats[2] = (unsigned)ppufast.smw.pan;
+  stats[3] = ppufast.smw.level;
+  return stats;
 }

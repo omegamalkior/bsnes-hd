@@ -209,6 +209,7 @@ auto PPU::writeIO(uint address, uint8 data) -> void {
   }
 
   case 0x2102: {  //OAMADDL
+    if(smw.hooks) { Line::flush(); smwSpriteLatch(); }
     io.oamBaseAddress = (io.oamBaseAddress & 0x0200) | data << 1;
     oamAddressReset();
     return;

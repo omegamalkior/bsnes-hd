@@ -314,9 +314,25 @@ public:
     int16_t maskL[240];   //per line: first visible x (relative to the original 256-wide picture)
     int16_t maskR[240];   //per line: one past the last visible x
     uint fadeIn = 0;      //door transition stage that fades the new room in (learned while running)
+    bool hooks = false;   //the CPU-side hooks are active (Super Metroid with a widescreen setting)
+    //true horizontal position of every sprite. the game computes a full 16-bit position but OAM only
+    //holds its low 9 bits, which is ambiguous once the picture is wider than 256+128 pixels: a sprite
+    //just past the right edge would reappear on the left. the position is recorded when the game
+    //writes the sprite (Build), handed over when it finishes the sprite list (Pending) and takes
+    //effect when the list is copied to the PPU (True). 0x7fff = not recorded.
+    int16_t sprBuild[128];
+    int16_t sprPending[128];
+    int16_t sprTrue[128];
+    //self-check counters (per frame, previous frame in *Last): sprite tiles drawn in the side areas
+    //without a recorded position, and with one
+    uint statSide = 0, statSideLast = 0;
+    uint statTrue = 0, statTrueLast = 0;
   } smw;
   auto smwPower() -> void;
   auto smwFrame() -> void;
+  auto smwSpriteFinalize() -> void;
+  auto smwSpriteLatch() -> void;
+  auto smwSpriteX(uint index, uint x9, bool& recorded) const -> int;
 
 
   uint ItemLimit = 0;

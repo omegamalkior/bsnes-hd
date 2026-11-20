@@ -70,6 +70,10 @@ auto PPU::Line::renderObject(PPU::IO::Object& self) -> void {
     x &= 511;
     y &= 255;
 
+    bool smwRecorded = false;
+    int smwX = ppufast.smw.cart ? ppufast.smwSpriteX(item.index, x, smwRecorded) : 0;
+    const int smwWs = ppufast.widescreen();
+
     uint16 tiledataAddress = self.tiledataAddress;
     if(object.nameselect) tiledataAddress += 1 + self.nameselect << 12;
     uint16 characterX =  (object.character & 15);
@@ -77,6 +81,15 @@ auto PPU::Line::renderObject(PPU::IO::Object& self) -> void {
 
     for(uint tileX : range(tileWidth)) {
       uint objectX = x + (tileX << 3) & 511;
+      if(ppufast.smw.cart) {
+        //placed by true position: nothing wraps around to the other side of the picture
+        int tx = smwX + int(tileX << 3);
+        if(tx <= -136 || tx >= 384) continue;
+        objectX = tx + 128;
+        if(ppufast.smw.level && (tx < 0 || tx >= 256) && tx > -8 - smwWs && tx < 256 + smwWs) {
+          if(smwRecorded) ppufast.smw.statTrue++; else ppufast.smw.statSide++;
+        }
+      }
       //if(x != 256 && objectX >= 256 && objectX + 7 < 512) continue;
 
       ObjectTile tile{true};
@@ -132,7 +145,7 @@ auto PPU::Line::renderObject(PPU::IO::Object& self) -> void {
     if(!priority[x]) continue;
     uint8 source = palette[x] < 192 ? Source::OBJ1 : Source::OBJ2;
     int xc = x;//
-    if(ppufast.smw.cart) xc = ((xc - ppufast.smw.pan + 128) & 511) - 128;
+    if(ppufast.smw.cart) xc -= 128;
     else if(xc > 352) xc -= 512;
     if(xc < wsl || xc >= wsr || (wsobj == 3 && (xc < 0 || xc >= 256))) continue;
 

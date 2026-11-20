@@ -46,3 +46,18 @@ and a 4000-frame boot run, at 16:9 / 19.5:9 / 21:9 and HD scales 1x to 4x), 0 di
 
 1-3 are only used when Super Metroid is loaded, because that is the only game the
 frame-for-frame comparison was run on.
+
+## Sprite position self-check (added 2026-11-20)
+
+OAM only stores the low 9 bits of a sprite's horizontal position. At 21:9 the picture is
+496 pixels wide, so a sprite just past the right edge used to reappear at the left edge
+(the gunship showing up twice). The core now records the full position when the game
+writes each sprite and places sprites by that.
+
+`bench <core> <rom> <state> <frames> check` counts, per frame, sprite tiles drawn in the
+side areas with and without a recorded position. Any tile without one could be in the
+wrong place, so the expected count is 0.
+
+Result on the commit that added this: 10 save states x 16:9 / 19.5:9 / 21:9 x 1200 frames
+of scripted play (36,000 frames): 0 tiles without a recorded position. With widescreen
+off, 21 hash-compared runs are identical to the previous version.

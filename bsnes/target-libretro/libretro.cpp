@@ -1138,10 +1138,12 @@ unsigned retro_get_region()
 // Currently, there is no safe/sensible way to use the memory interface without severe hackery.
 // Rely on higan to load and save SRAM until there is really compelling reason not to.
 extern "C" uint8_t* bsnes_hd_wram();
+extern "C" unsigned* bsnes_hd_smw_stats();
 
 void *retro_get_memory_data(unsigned id)
 {
 	if (id == RETRO_MEMORY_SYSTEM_RAM) return bsnes_hd_wram();
+	if (id == 0x534d57) return bsnes_hd_smw_stats();  // Super Metroid widescreen self-check counters
 	return nullptr;
 }
 
