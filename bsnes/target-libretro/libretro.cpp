@@ -887,7 +887,8 @@ unsigned retro_api_version()
 void retro_get_system_info(retro_system_info *info)
 {
 	info->library_name     = Emulator::Name;
-	info->library_version  = Emulator::Version;
+	// shown by the frontend; the suffix identifies the Super Metroid widescreen build
+	info->library_version  = "10.6 SM-wide r2";
 	info->need_fullpath    = true;
 	info->valid_extensions = "smc|sfc|gb|gbc|bs";
 	info->block_extract = false;
