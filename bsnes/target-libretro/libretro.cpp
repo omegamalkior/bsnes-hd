@@ -888,7 +888,11 @@ void retro_get_system_info(retro_system_info *info)
 {
 	info->library_name     = Emulator::Name;
 	// shown by the frontend; the suffix identifies the Super Metroid widescreen build
+#ifdef SMW_PGO
+	info->library_version  = "10.6 SM-wide r2 pgo";  //built with tools/smwide-bench/pgo-build.sh
+#else
 	info->library_version  = "10.6 SM-wide r2";
+#endif
 	info->need_fullpath    = true;
 	info->valid_extensions = "smc|sfc|gb|gbc|bs";
 	info->block_extract = false;

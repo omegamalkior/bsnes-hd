@@ -49,3 +49,25 @@ scripts used during development (libretro harness `lr.py`, disassembler
 
 The ROM and save states are not in the repository. Unmodified Super
 Metroid (JU), sha256 starting 12b77c4b.
+
+## Profile-guided Windows build (2026-11-26)
+
+`tools/smwide-bench/pgo-build.sh <rom> <states dir>` builds the same source with GCC's
+profile-guided optimization: an instrumented build plays five rooms for 1500 frames each
+at 21:9 and 16:9, then the core is rebuilt using that profile. The version string gets a
+`pgo` suffix (`-DSMW_PGO`). It cannot run in CI because it needs the ROM.
+
+Measured on a Zenbook S14 (MSYS2 GCC 16.2, best of 4, 3 rooms, 21:9 at HD scale 2x):
+
+| Build                    | 1 thread | all threads |
+|--------------------------|---------:|------------:|
+| CI build (r2)            | 2.43 ms  | 1.56 ms     |
+| profile-guided (r2 pgo)  | 2.18 ms  | 1.44 ms     |
+
+Output: 64 hash-compared runs (5 rooms x 16:9 / 19.5:9 / 21:9 x HD scale 1x-4x, plus
+widescreen mode none/all), 1200 frames each: 0 differences from the CI build.
+
+Where the time goes (one thread, 21:9, 2x): about 1.65 ms of a 2.45 ms frame is CPU and
+sound emulation and 0.85 ms is rendering. With OpenMP the rendering adds almost nothing to
+the frame time, and the Super Metroid CPU hooks cost about 0.01 ms, so further work on the
+widescreen renderer would not make frames noticeably faster.
