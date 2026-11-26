@@ -19,6 +19,7 @@ struct retro_game_info{const char*path;const void*data;size_t size;const char*me
 static const char *ar="21:9",*scale="2x",*wsmode="Mode 7";
 static unsigned W,H; static uint64_t hash=1469598103934665603ULL; static int dohash=0; static int pad=0;
 static FILE* dump=0;
+static const char* lastpath=0; static int cur=-1, total=0, idle=0;  // last:file = keep only the final frame; idle = no input
 static int docheck=0; static unsigned long long unrec=0, rec=0, unrecFrames=0;
 static bool env(unsigned cmd,void*d){
   cmd&=0xffff;
@@ -35,13 +36,15 @@ static bool env(unsigned cmd,void*d){
   return false;}
 static void video(const void*d,unsigned w,unsigned h,size_t p){W=w;H=h;
   if(dohash&&d){const uint8_t*b=d;for(unsigned y=0;y<h;y++){const uint32_t*r=(const uint32_t*)(b+y*p);for(unsigned x=0;x<w;x++){hash^=r[x]&0xffffff;hash*=1099511628211ULL;}}}
-  if(dump&&d){const uint8_t*b=d;for(unsigned y=0;y<h;y++)fwrite(b+y*p,4,w,dump);}}
+  if(dump&&d){const uint8_t*b=d;for(unsigned y=0;y<h;y++)fwrite(b+y*p,4,w,dump);}
+  if(lastpath&&d&&cur==total-1){FILE*f=fopen(lastpath,"wb");const uint8_t*b=d;for(unsigned y=0;y<h;y++)fwrite(b+y*p,4,w,f);fclose(f);}}
 static void audio(int16_t l,int16_t r){} static size_t audiob(const int16_t*d,size_t f){return f;}
 static void poll(void){}
 static int16_t state(unsigned port,unsigned dev,unsigned idx,unsigned id){ if(port||dev!=1)return 0; if(id==256)return pad; return (pad>>id)&1; }
 enum{B=1<<0,Y=1<<1,SEL=1<<2,ST=1<<3,UP=1<<4,DN=1<<5,LT=1<<6,RT=1<<7,A=1<<8,X=1<<9};
 static int boot=0;
 static int script(int f){ int c=f%600; int p=0;
+  if(idle) return 0;
   if(boot){ return (f%45)<4 ? ST : ((f%90)>60 ? A : 0); }
   if(c<200)p=LT|B; else if(c<400)p=RT|B; else if(c<500)p=LT; else p=RT;
   if(c%40<12)p|=A; if(c%25<4)p|=X; return p; }
@@ -60,9 +63,9 @@ int main(int c,char**v){
     ((void(*)(void))dlsym(h,"retro_deinit"))();
     printf("smoke test OK: %s %s, libretro API %u, extensions %s\n",si.name,si.version,api,si.ext);
     return 0;}
-  if(c<6){fprintf(stderr,"bench so rom state frames mode(time|hash|dump:file) [ar scale wsmode]\n");return 2;}
-  int frames=atoi(v[4]); if(!strcmp(v[5],"hash"))dohash=1; if(!strncmp(v[5],"dump:",5))dump=fopen(v[5]+5,"wb"); if(!strcmp(v[5],"check"))docheck=dohash=1;
-  if(c>6)ar=v[6]; if(c>7)scale=v[7]; if(c>8)wsmode=v[8]; if(c>9&&!strcmp(v[9],"boot"))boot=1;
+  if(c<6){fprintf(stderr,"bench so rom state frames mode(time|hash|check|dump:file|last:file) [ar scale wsmode [boot|idle]]\n");return 2;}
+  int frames=atoi(v[4]); if(!strcmp(v[5],"hash"))dohash=1; if(!strncmp(v[5],"dump:",5))dump=fopen(v[5]+5,"wb"); if(!strcmp(v[5],"check"))docheck=dohash=1; if(!strncmp(v[5],"last:",5))lastpath=v[5]+5; total=frames;
+  if(c>6)ar=v[6]; if(c>7)scale=v[7]; if(c>8)wsmode=v[8]; if(c>9&&!strcmp(v[9],"boot"))boot=1; if(c>9&&!strcmp(v[9],"idle"))idle=1;
   void*h=dlopen(v[1],RTLD_NOW);if(!h){puts(dlerror());return 1;}
   #define S(n) dlsym(h,n)
   ((void(*)(void*))S("retro_set_environment"))(env);
@@ -83,7 +86,7 @@ int main(int c,char**v){
   dohash=save_hash; dump=sd;
   double t0=now();
   void*(*memdata)(unsigned)=S("retro_get_memory_data");
-  for(int i=0;i<frames;i++){pad=script(i);run();
+  for(int i=0;i<frames;i++){cur=i;pad=script(i);run();
     if(docheck){unsigned*st=memdata(0x534d57); if(st){unrec+=st[0];rec+=st[1];unrecFrames+=st[0]!=0;}}}
   double t=now()-t0;
   printf("%ux%u frames=%d ms/frame=%.4f fps=%.1f hash=%016llx\n",W,H,frames,t*1000/frames,frames/t,(unsigned long long)hash);

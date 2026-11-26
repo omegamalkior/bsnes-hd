@@ -1,12 +1,12 @@
 # Software Information
-display_name = "Nintendo - SNES / SFC (bsnes-hd 10.7)"
+display_name = "Nintendo - SNES / SFC (bsnes-hd 10.7.0)"
 categories = "Emulator"
 authors = "Near|DerKoun"
 corename = "bsnes-hd beta"
 supported_extensions = "smc|sfc|swc|fig|gb|gbc|bs"
 license = "GPLv3"
 permissions = ""
-display_version = "10.7"
+display_version = "10.7.0"
 
 # Hardware Information
 manufacturer = "Nintendo"
@@ -90,4 +90,4 @@ hw_render = "false"
 needs_fullpath = "false"
 disk_control = "false"
 
-description = "Unofficial bsnes-hd 10.7: bsnes-hd beta 10.6 with widescreen aspect ratios up to 32:9 that need no ROM patches (built-in widescreen for unmodified Super Metroid). Early build: untested with many games."
+description = "Unofficial bsnes-hd 10.7.0: bsnes-hd beta 10.6 with widescreen aspect ratios up to 32:9 that need no ROM patches (built-in widescreen for unmodified Super Metroid). Early build: untested with many games."

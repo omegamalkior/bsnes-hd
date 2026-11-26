@@ -5,7 +5,7 @@
 #
 #   tools/smwide-bench/pgo-build.sh <rom> <dir with landing/parlor/a1s0/a2s1/a5s0 .state files>
 #
-# Result: bsnes/out/bsnes_hd_10-7_libretro.dll (stripped). Needs mingw-w64 gcc, make and libgomp.
+# Result: bsnes/out/bsnes_hd_10-7-0_libretro.dll (stripped). Needs mingw-w64 gcc, make and libgomp.
 set -e
 rom="$1"; states="$2"
 [ -f "$rom" ] && [ -d "$states" ] || { echo "usage: $0 <rom> <states dir>"; exit 1; }
@@ -17,7 +17,7 @@ gcc -O2 -static -o bsnes/out/smwide-bench.exe tools/smwide-bench/bench.c
 rm -f bsnes/obj/*.o bsnes/obj/*.d bsnes/obj/*.gcda
 flags="-fprofile-generate -fprofile-update=atomic" options="-fprofile-generate" \
   mingw32-make -j"$jobs" -C bsnes target=libretro
-cp bsnes/out/bsnes_hd_10-7_libretro.dll bsnes/out/pgo-gen.dll
+cp bsnes/out/bsnes_hd_10-7-0_libretro.dll bsnes/out/pgo-gen.dll
 
 # 2. training run (slow: the instrumented core runs at roughly 30 fps)
 for r in landing parlor a1s0 a2s1 a5s0; do for ar in 21:9 16:9; do
@@ -29,7 +29,7 @@ rm -f bsnes/out/pgo-gen.dll
 rm -f bsnes/obj/*.o bsnes/obj/*.d
 flags="-fprofile-use -fprofile-correction -Wno-missing-profile -DSMW_PGO" \
   mingw32-make -j"$jobs" -C bsnes target=libretro
-strip --strip-unneeded bsnes/out/bsnes_hd_10-7_libretro.dll
+strip --strip-unneeded bsnes/out/bsnes_hd_10-7-0_libretro.dll
 rm -f bsnes/obj/*.gcda
-bsnes/out/smwide-bench.exe bsnes/out/bsnes_hd_10-7_libretro.dll --smoke
+bsnes/out/smwide-bench.exe bsnes/out/bsnes_hd_10-7-0_libretro.dll --smoke
 echo "Now compare 'hash' output against the regular build before installing (must be identical)."

@@ -1,14 +1,14 @@
 # Nintendo 3DS build of the libretro core (a static library that RetroArch's Makefile.ctr links in).
 # needs devkitARM (devkitPro). usage, from this folder:
-#   make            -> bsnes_hd_10-7_libretro_ctr.a
+#   make            -> bsnes_hd_10-7-0_libretro_ctr.a
 # then, in a RetroArch source tree:
-#   cp bsnes_hd_10-7_libretro_ctr.a <RetroArch>/libretro_ctr.a
-#   make -f Makefile.ctr LIBRETRO=bsnes_hd_10-7 USE_CTRULIB_2=1
+#   cp bsnes_hd_10-7-0_libretro_ctr.a <RetroArch>/libretro_ctr.a
+#   make -f Makefile.ctr LIBRETRO=bsnes_hd_10-7-0 USE_CTRULIB_2=1
 ifeq ($(strip $(DEVKITARM)),)
 $(error DEVKITARM is not set: install devkitPro's devkitARM)
 endif
 
-TARGET := bsnes_hd_10-7_libretro_ctr.a
+TARGET := bsnes_hd_10-7-0_libretro_ctr.a
 ROOT   := ../../..
 CC     := $(DEVKITARM)/bin/arm-none-eabi-gcc
 CXX    := $(DEVKITARM)/bin/arm-none-eabi-g++

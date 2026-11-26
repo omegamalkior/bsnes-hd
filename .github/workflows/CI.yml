@@ -25,7 +25,7 @@ jobs:
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: bsnes_hd_10-7_windows
+        name: bsnes_hd_10-7-0_windows
         path: bsnes\out\pack
         if-no-files-found: error
 
@@ -45,18 +45,18 @@ jobs:
       shell: bash
       run: |
         mkdir -p bsnes/out/pack
-        cp README.md LICENSE bsnes/target-libretro/bsnes_hd_10-7_libretro.info bsnes/out/pack
-        cp -R bsnes/out/*bsnes_hd_10-7_libretro* bsnes/out/pack
+        cp README.md LICENSE bsnes/target-libretro/bsnes_hd_10-7-0_libretro.info bsnes/out/pack
+        cp -R bsnes/out/*bsnes_hd_10-7-0_libretro* bsnes/out/pack
     - name: Publish core to builds branch
       if: github.ref == 'refs/heads/super-metroid-widescreen'
       shell: bash
       run: |
         mkdir pub
-        cp bsnes/out/bsnes_hd_10-7_libretro.dll pub/
-        strip --strip-unneeded pub/bsnes_hd_10-7_libretro.dll
+        cp bsnes/out/bsnes_hd_10-7-0_libretro.dll pub/
+        strip --strip-unneeded pub/bsnes_hd_10-7-0_libretro.dll
         # build the headless test tool and check that the finished core loads and starts on Windows
         gcc -O2 -static -o pub/smwide-bench.exe tools/smwide-bench/bench.c
-        ./pub/smwide-bench.exe pub/bsnes_hd_10-7_libretro.dll --smoke
+        ./pub/smwide-bench.exe pub/bsnes_hd_10-7-0_libretro.dll --smoke
         cd pub
         git init -q -b builds
         git config user.name "github-actions"
@@ -67,7 +67,7 @@ jobs:
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: bsnes_hd_10-7_windows_libretro
+        name: bsnes_hd_10-7-0_windows_libretro
         path: bsnes\out\pack
         if-no-files-found: error
 
@@ -91,7 +91,7 @@ jobs:
         chmod +x bsnes/out/pack/bsnes_hd
         mkdir -p bsnes/out/tar
         cd bsnes/out/pack
-        tar -jcvpf ../tar/bsnes_hd_10-7_linux.tar.bz2 *
+        tar -jcvpf ../tar/bsnes_hd_10-7-0_linux.tar.bz2 *
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
@@ -114,12 +114,12 @@ jobs:
     - name: Prepare artifacts
       run: |
         mkdir -p bsnes/out/pack
-        cp README.md LICENSE bsnes/target-libretro/bsnes_hd_10-7_libretro.info bsnes/out/pack
-        cp -R bsnes/out/*bsnes_hd_10-7_libretro* bsnes/out/pack
+        cp README.md LICENSE bsnes/target-libretro/bsnes_hd_10-7-0_libretro.info bsnes/out/pack
+        cp -R bsnes/out/*bsnes_hd_10-7-0_libretro* bsnes/out/pack
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: bsnes_hd_10-7_linux_libretro
+        name: bsnes_hd_10-7-0_linux_libretro
         path: bsnes/out/pack
         if-no-files-found: error
 
@@ -152,16 +152,16 @@ jobs:
     - name: Build
       run: |
         make -j $(nproc) -C bsnes target=libretro compiler=/usr/bin/aarch64-linux-gnu-g++
-        wget https://raw.githubusercontent.com/libretro/libretro-super/master/retrolink.sh && chmod +x retrolink.sh && ./retrolink.sh bsnes/out/bsnes_hd_10-7_libretro.so
+        wget https://raw.githubusercontent.com/libretro/libretro-super/master/retrolink.sh && chmod +x retrolink.sh && ./retrolink.sh bsnes/out/bsnes_hd_10-7-0_libretro.so
     - name: Prepare artifacts
       run: |
         mkdir -p bsnes/out/pack
-        cp README.md LICENSE bsnes/target-libretro/bsnes_hd_10-7_libretro.info bsnes/out/pack
-        cp -R bsnes/out/*bsnes_hd_10-7_libretro* bsnes/out/pack
+        cp README.md LICENSE bsnes/target-libretro/bsnes_hd_10-7-0_libretro.info bsnes/out/pack
+        cp -R bsnes/out/*bsnes_hd_10-7-0_libretro* bsnes/out/pack
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: bsnes_hd_10-7_linux_arm_libretro
+        name: bsnes_hd_10-7-0_linux_arm_libretro
         path: bsnes/out/pack
         if-no-files-found: error
 
@@ -184,7 +184,7 @@ jobs:
         chmod +x bsnes/out/pack/bsnes_hd.app/Contents/MacOS/bsnes
         mkdir -p bsnes/out/tar
         cd bsnes/out/pack
-        tar -jcvpf ../tar/bsnes_hd_10-7_mac.tar.bz2 *
+        tar -jcvpf ../tar/bsnes_hd_10-7-0_mac.tar.bz2 *
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
@@ -205,12 +205,12 @@ jobs:
     - name: Prepare artifacts
       run: |
         mkdir -p bsnes/out/pack
-        cp README.md LICENSE bsnes/target-libretro/bsnes_hd_10-7_libretro.info bsnes/out/pack
-        cp -R bsnes/out/*bsnes_hd_10-7_libretro* bsnes/out/pack
+        cp README.md LICENSE bsnes/target-libretro/bsnes_hd_10-7-0_libretro.info bsnes/out/pack
+        cp -R bsnes/out/*bsnes_hd_10-7-0_libretro* bsnes/out/pack
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: bsnes_hd_10-7_mac_libretro
+        name: bsnes_hd_10-7-0_mac_libretro
         path: bsnes/out/pack
         if-no-files-found: error
 
@@ -228,16 +228,16 @@ jobs:
         cd bsnes/target-libretro/jni
         ndk-build
         cd -
-        for f in bsnes/target-libretro/libs/*/libretro.so; do mv "$f" "$(dirname "$f")/bsnes_hd_10-7_libretro_android.so"; done
-        cp README.md LICENSE bsnes/target-libretro/bsnes_hd_10-7_libretro.info bsnes/target-libretro/libs
+        for f in bsnes/target-libretro/libs/*/libretro.so; do mv "$f" "$(dirname "$f")/bsnes_hd_10-7-0_libretro_android.so"; done
+        cp README.md LICENSE bsnes/target-libretro/bsnes_hd_10-7-0_libretro.info bsnes/target-libretro/libs
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: bsnes_hd_10-7_android_libretro
+        name: bsnes_hd_10-7-0_android_libretro
         path: bsnes/target-libretro/libs
         if-no-files-found: error
 
-  3DS-libretro:
+  Nintendo-3DS-libretro:
     runs-on: ubuntu-latest
     container: devkitpro/devkitarm:latest
     steps:
@@ -250,23 +250,23 @@ jobs:
         git init -q ra && cd ra
         git fetch -q --depth 1 https://github.com/libretro/RetroArch.git d78199ff8590f7dfd0efac9c32fd7a4984e7752a
         git checkout -q FETCH_HEAD
-        cp ../bsnes/target-libretro/ctr/bsnes_hd_10-7_libretro_ctr.a libretro_ctr.a
-        make -f Makefile.ctr -j $(nproc) USE_CTRULIB_2=1 LIBRETRO=bsnes_hd_10-7 APP_TITLE="bsnes-hd 10.7" \
-          APP_PRODUCT_CODE=RARCH-BSNESHD APP_UNIQUE_ID=0xBAF10 APP_AUTHOR="bsnes-hd (unofficial 10.7)"
+        cp ../bsnes/target-libretro/ctr/bsnes_hd_10-7-0_libretro_ctr.a libretro_ctr.a
+        make -f Makefile.ctr -j $(nproc) USE_CTRULIB_2=1 LIBRETRO=bsnes_hd_10-7-0 APP_TITLE="bsnes-hd 10.7.0" \
+          APP_PRODUCT_CODE=RARCH-BSNESHD APP_UNIQUE_ID=0xBAF10 APP_AUTHOR="bsnes-hd (unofficial 10.7.0)"
         mkdir -p ../pack3ds
-        cp retroarch_3ds.3dsx ../pack3ds/bsnes_hd_10-7_libretro.3dsx
-        cp retroarch_3ds.cia ../pack3ds/bsnes_hd_10-7_libretro.cia
+        cp retroarch_3ds.3dsx ../pack3ds/bsnes_hd_10-7-0_libretro.3dsx
+        cp retroarch_3ds.cia ../pack3ds/bsnes_hd_10-7-0_libretro.cia
         cp ../README.md ../LICENSE ../pack3ds/
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: bsnes_hd_10-7_3ds_libretro
+        name: bsnes_hd_10-7-0_3ds_libretro
         path: pack3ds
         if-no-files-found: error
 
   Release:
-    if: startsWith(github.ref, 'refs/tags/v10.7')
-    needs: [Windows-libretro, Linux-libretro, Linux-ARM-libretro, macOS-libretro, Android-libretro, 3DS-libretro]
+    if: startsWith(github.ref, 'refs/tags/v10.7.0')
+    needs: [Windows-libretro, Linux-libretro, Linux-ARM-libretro, macOS-libretro, Android-libretro, Nintendo-3DS-libretro]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -274,13 +274,13 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
       TAG: ${{ github.ref_name }}
-      TITLE: "bsnes-hd-10.7 (aspect ratio no ROM patching, up to 32:9)"
+      TITLE: "bsnes-hd 10.7.0 (aspect ratio no ROM patching, up to 32:9)"
     steps:
     - uses: actions/checkout@v4
     - uses: actions/download-artifact@v4
       with:
         path: art
-        pattern: bsnes_hd_10-7_*_libretro
+        pattern: bsnes_hd_10-7-0_*_libretro
     - name: Package
       run: |
         mkdir dist
@@ -292,11 +292,11 @@ jobs:
         gh release list --limit 20 --json tagName,isDraft,name | tee releases.json
         existing=$(jq -r 'if length == 1 then .[0].tagName else "" end' releases.json)
         if gh release view "$TAG" >/dev/null 2>&1; then
-          gh release edit "$TAG" --title "$TITLE" --notes-file tools/release-notes-10.7.md
+          gh release edit "$TAG" --title "$TITLE" --notes-file tools/release-notes-10.7.0.md
         elif [ -n "$existing" ]; then
-          gh release edit "$existing" --tag "$TAG" --title "$TITLE" --notes-file tools/release-notes-10.7.md
+          gh release edit "$existing" --tag "$TAG" --title "$TITLE" --notes-file tools/release-notes-10.7.0.md
         else
-          gh release create "$TAG" --title "$TITLE" --notes-file tools/release-notes-10.7.md
+          gh release create "$TAG" --title "$TITLE" --notes-file tools/release-notes-10.7.0.md
         fi
         gh release upload "$TAG" dist/*.zip --clobber
         gh release view "$TAG"
