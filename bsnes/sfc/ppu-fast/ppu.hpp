@@ -4,6 +4,10 @@
 //* mid-scanline effects not support
 //* vertical mosaic coordinates are not exact
 
+#ifndef BSNES_HD_LINE_PIXELS
+#define BSNES_HD_LINE_PIXELS 61440  //see emulator/hdtoolkit.hpp
+#endif
+
 #define PPU PPUfast
 
 struct PPU : PPUcounter {
@@ -394,11 +398,11 @@ public:
     ObjectItem items[128];  //32 on real hardware
     ObjectTile tiles[128];  //34 on real hardware; 1024 max (128 * 64-width tiles)
 
-    Pixel *above = new Pixel[61440];
-    Pixel *below = new Pixel[61440];
+    Pixel *above = new Pixel[BSNES_HD_LINE_PIXELS];
+    Pixel *below = new Pixel[BSNES_HD_LINE_PIXELS];
 
-    bool *windowAbove = new bool[61440] ;
-    bool *windowBelow = new bool[61440] ;
+    bool *windowAbove = new bool[BSNES_HD_LINE_PIXELS] ;
+    bool *windowBelow = new bool[BSNES_HD_LINE_PIXELS] ;
 
     //flush()
     static uint start;

@@ -25,7 +25,7 @@ auto PPU::hires() const -> bool { return latch.hires; }
 auto PPU::hd() const -> bool { return latch.hd; }
 auto PPU::ss() const -> bool { return latch.ss; }
 #undef ppu
-auto PPU::hdScale() const -> uint { return configuration.hacks.ppu.mode7.scale; }
+auto PPU::hdScale() const -> uint { return min(configuration.hacks.ppu.mode7.scale, (uint)HdToolkit::maxScale()); }
 auto PPU::hdPerspective() const -> uint { return configuration.hacks.ppu.mode7.perspective; }
 auto PPU::hdSupersample() const -> uint { return configuration.hacks.ppu.mode7.supersample; }
 auto PPU::hdMosaic() const -> uint { return configuration.hacks.ppu.mode7.mosaic; }
@@ -68,7 +68,7 @@ auto PPU::noVRAMBlocking() const -> bool { return configuration.hacks.ppu.noVRAM
 #define ppu ppufast
 
 PPU::PPU() {
-  output = new uint32_t[256 * 61440]();
+  output = new uint32_t[256 * BSNES_HD_LINE_PIXELS]();
   for(uint y : range(240)) {
     lines[y].y = y;
   }
@@ -196,7 +196,7 @@ auto PPU::load() -> bool {
 
 auto PPU::power(bool reset) -> void {
   PPUcounter::reset();
-  memory::fill<uint16>(output, 256 * 61440);
+  memory::fill<uint16>(output, 256 * BSNES_HD_LINE_PIXELS);
 
   function<uint8 (uint, uint8)> reader{&PPU::readIO, this};
   function<void  (uint, uint8)> writer{&PPU::writeIO, this};

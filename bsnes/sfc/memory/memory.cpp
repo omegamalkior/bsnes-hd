@@ -5,10 +5,61 @@ namespace SuperFamicom {
 bool Memory::GlobalWriteEnable = false;
 Bus bus;
 
+#if defined(BSNES_COMPACT_BUS)
+auto Bus::freePages() -> void {
+  if(!pages) return;
+  for(uint n : range(4096)) {
+    delete[] pages[n].ids;
+    delete[] pages[n].targets;
+  }
+  delete[] pages;
+  pages = nullptr;
+}
+
+auto Bus::assign(uint addr, uint id, uint offset) -> void {
+  auto& p = pages[addr >> 12];
+  uint o = addr & 0xfff;
+  if(!p.ids) {
+    if(p.id == id && (id == 0 || p.base + o == offset)) return;  //already so
+    p.ids = new uint8[4096];
+    p.targets = new uint32[4096];
+    for(uint n : range(4096)) p.ids[n] = p.id, p.targets[n] = p.base + n;
+  }
+  p.ids[o] = id;
+  p.targets[o] = offset;
+}
+
+//a mixed page whose addresses all go to one place again becomes a uniform page
+auto Bus::compact(uint page) -> void {
+  auto& p = pages[page];
+  if(!p.ids) return;
+  uint id = p.ids[0], base = p.targets[0];
+  for(uint n : range(4096)) {
+    if(p.ids[n] != id) return;
+    if(id && p.targets[n] != base + n) return;
+  }
+  delete[] p.ids;
+  delete[] p.targets;
+  p.ids = nullptr;
+  p.targets = nullptr;
+  p.id = id;
+  p.base = base;
+}
+
+Bus::~Bus() {
+  freePages();
+}
+#else
+auto Bus::assign(uint addr, uint id, uint offset) -> void {
+  lookup[addr] = id;
+  target[addr] = offset;
+}
+
 Bus::~Bus() {
   if(lookup) delete[] lookup;
   if(target) delete[] target;
 }
+#endif
 
 auto Bus::reset() -> void {
   for(uint id : range(256)) {
@@ -17,11 +68,16 @@ auto Bus::reset() -> void {
     counter[id] = 0;
   }
 
+#if defined(BSNES_COMPACT_BUS)
+  freePages();
+  pages = new Page[4096];
+#else
   if(lookup) delete[] lookup;
   if(target) delete[] target;
 
   lookup = new uint8 [16 * 1024 * 1024]();
   target = new uint32[16 * 1024 * 1024]();
+#endif
 
   reader[0] = [](uint, uint8 data) -> uint8 { return data; };
   writer[0] = [](uint, uint8) -> void {};
@@ -54,7 +110,7 @@ auto Bus::map(
 
       for(uint bank = bankLo; bank <= bankHi; bank++) {
         for(uint addr = addrLo; addr <= addrHi; addr++) {
-          uint pid = lookup[bank << 16 | addr];
+          uint pid = idAt(bank << 16 | addr);
           if(pid && --counter[pid] == 0) {
             reader[pid].reset();
             writer[pid].reset();
@@ -63,10 +119,12 @@ auto Bus::map(
           uint offset = reduce(bank << 16 | addr, mask);
           if(size) base = mirror(base, size);
           if(size) offset = base + mirror(offset, size - base);
-          lookup[bank << 16 | addr] = id;
-          target[bank << 16 | addr] = offset;
+          assign(bank << 16 | addr, id, offset);
           counter[id]++;
         }
+        #if defined(BSNES_COMPACT_BUS)
+        for(uint page = (bank << 16 | addrLo) >> 12; page <= (bank << 16 | addrHi) >> 12; page++) compact(page);
+        #endif
       }
     }
   }
@@ -89,15 +147,17 @@ auto Bus::unmap(const string& addr) -> void {
 
       for(uint bank = bankLo; bank <= bankHi; bank++) {
         for(uint addr = addrLo; addr <= addrHi; addr++) {
-          uint pid = lookup[bank << 16 | addr];
+          uint pid = idAt(bank << 16 | addr);
           if(pid && --counter[pid] == 0) {
             reader[pid].reset();
             writer[pid].reset();
           }
 
-          lookup[bank << 16 | addr] = 0;
-          target[bank << 16 | addr] = 0;
+          assign(bank << 16 | addr, 0, 0);
         }
+        #if defined(BSNES_COMPACT_BUS)
+        for(uint page = (bank << 16 | addrLo) >> 12; page <= (bank << 16 | addrHi) >> 12; page++) compact(page);
+        #endif
       }
     }
   }

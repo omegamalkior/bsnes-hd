@@ -89,7 +89,7 @@ namespace nall {
   constexpr auto platform() -> Platform { return Platform::Android; }
   constexpr auto api() -> API { return API::Posix; }
   constexpr auto display() -> DisplayServer { return DisplayServer::Unknown; }
-#elif defined(__SWITCH__)
+#elif defined(__SWITCH__) || defined(_3DS) || defined(__3DS__)
   #define PLATFORM_HORIZON
   #define API_POSIX
   #define DISPLAY_UNKNOWN
@@ -164,7 +164,7 @@ namespace nall {
 
 namespace nall {
 
-#if (defined(__BYTE_ORDER) && defined(__LITTLE_ENDIAN) && __BYTE_ORDER == __LITTLE_ENDIAN) || defined(__LITTLE_ENDIAN__) || defined(__i386__) || defined(__amd64__) || defined(_M_IX86) || defined(_M_AMD64) || defined(__aarch64__)
+#if (defined(__BYTE_ORDER) && defined(__LITTLE_ENDIAN) && __BYTE_ORDER == __LITTLE_ENDIAN) || (defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__) || defined(__LITTLE_ENDIAN__) || defined(__i386__) || defined(__amd64__) || defined(_M_IX86) || defined(_M_AMD64) || defined(__aarch64__)
   #define ENDIAN_LSB
   constexpr auto endian() -> Endian { return Endian::LSB; }
 #elif (defined(__BYTE_ORDER) && defined(__BIG_ENDIAN) && __BYTE_ORDER == __BIG_ENDIAN) || defined(__BIG_ENDIAN__) || defined(__powerpc__) || defined(_M_PPC)

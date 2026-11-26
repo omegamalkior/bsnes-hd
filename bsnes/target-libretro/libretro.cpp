@@ -430,6 +430,7 @@ static bool update_variables() // returns whether video dimensions have changed 
 		ws_display_aspect = strcmp(var.value, "21:9") == 0 ? 43.0 / 18.0
 		                  : strcmp(var.value, "19.5:9") == 0 ? 19.5 / 9.0 : 0.0;
 	}
+	if (scale > HdToolkit::maxScale()) scale = HdToolkit::maxScale();
 	if (scale == 0) ws = 0;
 	emulator->configure("Hacks/PPU/Mode7/Widescreen", ws);
 

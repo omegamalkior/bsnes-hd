@@ -38,8 +38,25 @@ struct Bus {
   auto unmap(const string& address) -> void;
 
 private:
+  alwaysinline auto idAt(uint address) const -> uint;
+  auto assign(uint address, uint id, uint offset) -> void;
+
+#if defined(BSNES_COMPACT_BUS)
+  //small devices (3DS): the full map below takes 80 MB. instead keep one entry per 4 KB page, and
+  //per-address entries only for the few pages whose addresses go to different places
+  struct Page {
+    uint8 id = 0;             //uniform page: every address goes to id,
+    uint32 base = 0;          //at base + (address & 0xfff)
+    uint8* ids = nullptr;     //mixed page: per address
+    uint32* targets = nullptr;
+  };
+  Page* pages = nullptr;  //4096 pages
+  auto freePages() -> void;
+  auto compact(uint page) -> void;
+#else
   uint8* lookup = nullptr;
   uint32* target = nullptr;
+#endif
 
   function<uint8 (uint, uint8)> reader[256];
   function<void  (uint, uint8)> writer[256];
