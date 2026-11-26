@@ -67,6 +67,14 @@ auto PPU::Line::renderBackground(PPU::IO::Background& self, uint8 source) -> voi
   uint hmask = (width << self.tileSize << !!(self.screenSize & 1)) - 1;
   uint vmask = (width << self.tileSize << !!(self.screenSize & 2)) - 1;
 
+  //Super Metroid rooms are drawn from the 1024 pixel wide copy of the room layers (smwide.cpp)
+  const uint16_t* smwWide = nullptr;
+  if(ppufast.smw.level && !hires && !offsetPerTileMode && !self.tileSize) {
+    if(source == Source::BG1) smwWide = ppufast.smw.wide[0];
+    else if(source == Source::BG2 && ppufast.smw.wideBg2) smwWide = ppufast.smw.wide[1];
+  }
+  if(smwWide) hmask = 1023;
+
   uint y = this->y;
   if(self.mosaicEnable) y -= io.mosaic.size - io.mosaic.counter;
   if(hires) {
@@ -126,7 +134,7 @@ auto PPU::Line::renderBackground(PPU::IO::Background& self, uint8 source) -> voi
     hoffset &= hmask;
     voffset &= vmask;
 
-    uint tileNumber = getTile(self, hoffset, voffset);
+    uint tileNumber = smwWide ? smwWide[(voffset >> 3 & 31) * 128 + (hoffset >> 3 & 127)] : getTile(self, hoffset, voffset);
     uint mirrorY = tileNumber & 0x8000 ? 7 : 0;
     uint mirrorX = tileNumber & 0x4000 ? 7 : 0;
     uint8 tilePriority = self.priority[bool(tileNumber & 0x2000)];

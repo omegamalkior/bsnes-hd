@@ -28,4 +28,12 @@ namespace HdToolkit {
     ws *= 8;
     return ws;
   }
+
+  //the renderer keeps 61440 pixels per line ((256 + 2 * ws) * scale * scale). very wide pictures
+  //(32:9) at the highest HD scales would not fit: narrow them just enough that they do.
+  static constexpr auto clampWsExt(int ws, int scale) -> int {
+    if (scale < 1) scale = 1;
+    while (ws > 0 && (256 + 2 * ws) * scale * scale > 61440) ws -= 8;
+    return ws < 0 ? 0 : ws;
+  }
 }

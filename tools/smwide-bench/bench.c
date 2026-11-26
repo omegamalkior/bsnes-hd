@@ -26,6 +26,7 @@ static bool env(unsigned cmd,void*d){
     if(!strcmp(v->key,"bsnes_mode7_widescreen")){v->value=ar;return true;}
     if(!strcmp(v->key,"bsnes_mode7_scale")){v->value=scale;return true;}
     if(!strcmp(v->key,"bsnes_mode7_wsMode")){v->value=wsmode;return true;}
+    if(!strcmp(v->key,"bsnes_entropy")){v->value="None";return true;}  // repeatable runs from power-on
     return false;}
   if(cmd==17){*(bool*)d=false;return true;}
   if(cmd==10)return true;

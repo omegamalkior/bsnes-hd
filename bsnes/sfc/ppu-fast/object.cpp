@@ -83,9 +83,11 @@ auto PPU::Line::renderObject(PPU::IO::Object& self) -> void {
       uint objectX = x + (tileX << 3) & 511;
       if(ppufast.smw.cart) {
         //placed by true position: nothing wraps around to the other side of the picture
+        //(tiles are kept 384 pixels to the right in the line buffer, room for up to 376 pixels on
+        //each side of the original picture: 32:9 needs at most 272)
         int tx = smwX + int(tileX << 3);
-        if(tx <= -136 || tx >= 384) continue;
-        objectX = tx + 128;
+        if(tx <= -384 || tx >= 256 + 376) continue;
+        objectX = tx + 384;
         if(ppufast.smw.level && (tx < 0 || tx >= 256) && tx > -8 - smwWs && tx < 256 + smwWs) {
           if(smwRecorded) ppufast.smw.statTrue++; else ppufast.smw.statSide++;
         }
@@ -113,8 +115,10 @@ auto PPU::Line::renderObject(PPU::IO::Object& self) -> void {
   ppu.io.obj.rangeOver |= itemCount > ppu.ItemLimit;
   ppu.io.obj.timeOver  |= tileCount > ppu.TileLimit;
 
-  uint8_t palette[512] = {};//
-  uint8_t priority[512] = {};//
+  //Super Metroid: 1024 wide, offset by 384 (see above); anything else: 512 wide, wrapping
+  const uint lineMask = ppufast.smw.cart ? 1023 : 511;
+  uint8_t palette[1024] = {};//
+  uint8_t priority[1024] = {};//
 
   for(uint n : range(ppu.TileLimit)) {
     auto& tile = tiles[n];
@@ -122,7 +126,7 @@ auto PPU::Line::renderObject(PPU::IO::Object& self) -> void {
 
     uint tileX = tile.x;
     for(uint x : range(8)) {
-      tileX &= 511;
+      tileX &= lineMask;
       //if(tileX < 256) {
         uint color, shift = tile.hflip ? x : 7 - x;
         color  = tile.data >> shift +  0 & 1;
@@ -141,11 +145,11 @@ auto PPU::Line::renderObject(PPU::IO::Object& self) -> void {
   auto luma = ppu.lightTable[io.displayBrightness];
   int wsl = -((int)ppufast.widescreen());
   int wsr = 256 + ((int)ppufast.widescreen());
-  for(uint x : range(512)) {//
+  for(uint x : range(lineMask + 1)) {//
     if(!priority[x]) continue;
     uint8 source = palette[x] < 192 ? Source::OBJ1 : Source::OBJ2;
     int xc = x;//
-    if(ppufast.smw.cart) xc -= 128;
+    if(ppufast.smw.cart) xc -= 384;
     else if(xc > 352) xc -= 512;
     if(xc < wsl || xc >= wsr || (wsobj == 3 && (xc < 0 || xc >= 256))) continue;
 

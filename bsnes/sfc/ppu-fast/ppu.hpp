@@ -327,6 +327,10 @@ public:
     //without a recorded position, and with one
     uint statSide = 0, statSideLast = 0;
     uint statTrue = 0, statTrueLast = 0;
+    //the room layers as a 1024 pixel wide tilemap (the SNES one is only 512 wide, too narrow for
+    //pictures wider than about 21:9). [0] BG1, [1] BG2; row-major, 128 tiles per row, 32 rows
+    uint16_t wide[2][32 * 128];
+    bool wideBg2 = false;  //BG2 holds room data this frame (rather than a repeating backdrop)
   } smw;
   auto smwPower() -> void;
   auto smwFrame() -> void;

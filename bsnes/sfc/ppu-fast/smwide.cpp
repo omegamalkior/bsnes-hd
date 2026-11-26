@@ -89,38 +89,53 @@ auto PPU::smwFrame() -> void {
 
     //draw the whole stretch of the room around the camera into the background layers
     int lo = max(min(-128 + pan, -16), -240);
-    auto fill = [&](PPU::IO::Background& layer, const uint8_t* data, int cx, int cy) {
-      const uint8_t* table = cpu.wram + 0xa000;
+    //the tilemap word for the 8x8 tile at room position (wx, wy)
+    const uint8_t* table = cpu.wram + 0xa000;
+    auto tileAt = [&](const uint8_t* data, int wx, int wy) -> uint16_t {
+      if(wx < 0 || wy < 0 || (wx >> 4) >= W || (wy >> 4) >= H) return 0x0338;
+      uint i = ((wy >> 4) * W + (wx >> 4)) * 2;
+      uint block = data[i] | data[i + 1] << 8;
+      uint qx = wx >> 3 & 1, qy = wy >> 3 & 1;
+      if(block & 0x400) qx ^= 1;
+      if(block & 0x800) qy ^= 1;
+      const uint8_t* t = table + (block & 0x3ff) * 8 + (qy * 2 + qx) * 2;
+      uint16_t word = t[0] | t[1] << 8;
+      if(block & 0x400) word ^= 0x4000;
+      if(block & 0x800) word ^= 0x8000;
+      return word;
+    };
+    //the 1024 pixel wide copy the renderer draws the room from: it covers the whole picture, from
+    //ext pixels left of the original one to ext pixels right of it (plus the pan)
+    int loW = pan - ext - 16;
+    auto fill = [&](PPU::IO::Background& layer, uint16_t* wide, const uint8_t* data, int cx, int cy) {
+      int rowY[32];
+      for(int ty = 0; ty < 32; ty++) {
+        int e = (ty * 8 - layer.voffset) & 255; if(e >= 240) e -= 256;
+        rowY[ty] = cy + e;
+      }
+      //the game's own 512 pixel wide tilemap, as before (the picture's middle comes from here
+      //whenever the room is not on screen)
       for(int tx = 0; tx < 64; tx++) {
         int d = (tx * 8 - layer.hoffset - lo) & 511; d += lo;
-        int wx = cx + d;
         for(int ty = 0; ty < 32; ty++) {
-          int e = (ty * 8 - layer.voffset) & 255; if(e >= 240) e -= 256;
-          int wy = cy + e;
-          uint16_t word = 0x0338;
-          if(wx >= 0 && wy >= 0 && (wx >> 4) < W && (wy >> 4) < H) {
-            uint i = ((wy >> 4) * W + (wx >> 4)) * 2;
-            uint block = data[i] | data[i + 1] << 8;
-            uint qx = wx >> 3 & 1, qy = wy >> 3 & 1;
-            if(block & 0x400) qx ^= 1;
-            if(block & 0x800) qy ^= 1;
-            const uint8_t* t = table + (block & 0x3ff) * 8 + (qy * 2 + qx) * 2;
-            word = t[0] | t[1] << 8;
-            if(block & 0x400) word ^= 0x4000;
-            if(block & 0x800) word ^= 0x8000;
-          }
-          vram[(layer.screenAddress + (tx & 32 ? 0x400 : 0) + ty * 32 + (tx & 31)) & 0x7fff] = word;
+          vram[(layer.screenAddress + (tx & 32 ? 0x400 : 0) + ty * 32 + (tx & 31)) & 0x7fff] = tileAt(data, cx + d, rowY[ty]);
         }
       }
+      for(int tx = 0; tx < 128; tx++) {
+        int d = (tx * 8 - layer.hoffset - loW) & 1023; d += loW;
+        for(int ty = 0; ty < 32; ty++) wide[ty * 128 + tx] = tileAt(data, cx + d, rowY[ty]);
+      }
     };
-    fill(io.bg1, cpu.wram + 0x10002, camX, camY);
+    fill(io.bg1, smw.wide[0], cpu.wram + 0x10002, camX, camY);
 
     //rooms with their own second layer (rather than a repeating backdrop) keep it in the room data too
+    smw.wideBg2 = false;
     if(!(cpu.wram[0x091b] & 1) && io.bg2.screenSize == 1 && !io.bg2.tileSize) {
       int l2x = (int16_t)r16(0x0917), l2y = (int16_t)r16(0x0919);
       int ex = (io.bg2.hoffset - r16(0x0921) - l2x) & 511; if(ex >= 256) ex -= 512;
       int ey = (io.bg2.voffset - r16(0x0923) - l2y) & 255; if(ey >= 128) ey -= 256;
-      fill(io.bg2, cpu.wram + 0x19602, l2x + ex, l2y + ey);
+      fill(io.bg2, smw.wide[1], cpu.wram + 0x19602, l2x + ex, l2y + ey);
+      smw.wideBg2 = true;
     }
 
     //show the room as far as the camera would be allowed to go: stop at the room's edges and at

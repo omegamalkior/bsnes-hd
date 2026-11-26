@@ -628,6 +628,7 @@ struct retro_core_option_definition option_defs_us[] = {
          { "21:9",  NULL },
          { "19.5:9", NULL },
          { "2:1",   NULL },
+         { "32:9",  NULL },
          { "4:3",   NULL },
          { "none",  "disabled" },
          { NULL, NULL },

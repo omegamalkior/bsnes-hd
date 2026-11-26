@@ -425,6 +425,7 @@ static bool update_variables() // returns whether video dimensions have changed 
 		else if (strcmp(var.value,   "2:1") == 0) ws =  201;
 		else if (strcmp(var.value,  "21:9") == 0) ws = 2109;
 		else if (strcmp(var.value, "19.5:9") == 0) ws = 3918;
+		else if (strcmp(var.value,  "32:9") == 0) ws = 3209;
 		// "21:9" monitors (3440x1440, 5160x2160) are really 43:18
 		ws_display_aspect = strcmp(var.value, "21:9") == 0 ? 43.0 / 18.0
 		                  : strcmp(var.value, "19.5:9") == 0 ? 19.5 / 9.0 : 0.0;
@@ -659,7 +660,7 @@ static bool update_variables() // returns whether video dimensions have changed 
 	program->aspectcorrection = aspectcorrection;
 	vc = vc | program->scale != scale; // scale changed
 	program->scale = scale;
-	ws = HdToolkit::determineWsExt(ws, overscan, aspectcorrection);
+	ws = HdToolkit::clampWsExt(HdToolkit::determineWsExt(ws, overscan, aspectcorrection), scale);
 	vc = vc | program->ws != ws; // widescreen AR changed
 	program->ws = ws;
 	return vc; // returns whether video dimensions have changed (overscan, aspectcorrection scale or widescreen AR)
@@ -889,9 +890,9 @@ void retro_get_system_info(retro_system_info *info)
 	info->library_name     = Emulator::Name;
 	// shown by the frontend; the suffix identifies the Super Metroid widescreen build
 #ifdef SMW_PGO
-	info->library_version  = "10.6 SM-wide r2 pgo";  //built with tools/smwide-bench/pgo-build.sh
+	info->library_version  = "10.7 pgo";  //built with tools/smwide-bench/pgo-build.sh
 #else
-	info->library_version  = "10.6 SM-wide r2";
+	info->library_version  = "10.7";
 #endif
 	info->need_fullpath    = true;
 	info->valid_extensions = "smc|sfc|gb|gbc|bs";

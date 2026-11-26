@@ -4,8 +4,8 @@ uint PPU::Line::count = 0;
 
 auto PPU::Line::flush() -> void {
 
-  ppu.wsExt = HdToolkit::determineWsExt(ppu.widescreenRaw(),
-        configuration.video.overscan, configuration.video.aspectCorrection);
+  ppu.wsExt = HdToolkit::clampWsExt(HdToolkit::determineWsExt(ppu.widescreenRaw(),
+        configuration.video.overscan, configuration.video.aspectCorrection), ppu.hdScale());
 
   if (ppu.luminance != configuration.video.luminance ||
         ppu.saturation != configuration.video.saturation ||
